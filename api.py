@@ -1,63 +1,54 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import pandas as pd
 import json
 
 # Import Backend Logic
-from ner_foodoscope import run_full_ner_pipeline, process_recipe_dataset
-from recipe_finder import find_matching_recipes
+from recipe_service import RecipeService
 
 app = FastAPI(title="Foodoscope API")
+
+recipe_service = RecipeService()
 
 # Allow CORS for React Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all for hackathon demo
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Load Dataset Once
-try:
-    df = process_recipe_dataset('Datasets/foodoscope_recipes.csv')
-    print("✅ Dataset Loaded")
-except Exception as e:
-    print(f"❌ Error Loading Dataset: {e}")
-    df = pd.DataFrame()
+# Load data into memory on startup
+@app.on_event("startup")
+def startup_event():
+    print("Fetching recipes into memory...")
+    recipe_service.fetch_recipes(max_pages=10)
+    print(f"✅ Cached {len(recipe_service.recipes)} recipes")
 
-# Pydantic Models
-class SearchRequest(BaseModel):
-    query: str
-    top_k: int = 20
+# Pydantic Models for the Diet Plan
+class DietPlanRequest(BaseModel):
+    daily_calories: float = 2000
+    is_vegetarian: bool = True
+    max_cooking_time: Optional[float] = None
+    region: Optional[str] = None
 
 @app.get("/")
 def health_check():
     return {"status": "ok", "message": "Foodoscope API is running"}
 
-@app.post("/search")
-def search_recipes(request: SearchRequest):
-    if df.empty:
-        raise HTTPException(status_code=500, detail="Dataset not loaded properly")
+@app.post("/generate-diet-plan")
+def generate_diet(request: DietPlanRequest):
+    plan = recipe_service.generate_weekly_plan(
+        daily_calories=request.daily_calories,
+        is_veg_pref=request.is_vegetarian,
+        max_time=request.max_cooking_time,
+        region=request.region
+    )
     
-    # 1. Run NER
-    ner_res = run_full_ner_pipeline(request.query)
-    final_entities = ner_res["FINAL_ENTITIES"]
-    
-    # 2. Run Matcher (Hybrid)
-    matches = find_matching_recipes(df, final_entities, request.query, top_k=request.top_k)
-    
-    # 3. Clean NaN for JSON Response
-    clean_matches = []
-    for m in matches:
-        # Convert NaN to None/0 for JSON safety
-        m["Score"] = float(m["Score"]) if pd.notna(m["Score"]) else 0.0
-        m["Protein (g)"] = float(m["Protein (g)"]) if pd.notna(m["Protein (g)"]) else 0.0
-        m["Calories"] = float(m["Calories"]) if pd.notna(m["Calories"]) else 0.0
-        clean_matches.append(m)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Could not generate plan with given constraints.")
         
-    return {
-        "entities": final_entities,
-        "recipes": clean_matches
-    }
+    return plan
