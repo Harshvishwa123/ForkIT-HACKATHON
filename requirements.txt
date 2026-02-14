@@ -1,0 +1,10 @@
+streamlit
+pandas
+plotly
+semanticscholar
+sentence-transformers
+numpy
+tf-keras
+fastapi
+uvicorn
+scikit-learn
