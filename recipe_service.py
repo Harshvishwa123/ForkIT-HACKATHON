@@ -1,204 +1,250 @@
 import requests
+import json
+import os
 
-# =========================================================
-# NON-VEG KEYWORDS
-# =========================================================
-NON_VEG_KEYWORDS = [
-    "chicken","beef","mutton","pork","lamb","goat",
-    "fish","salmon","tuna","shrimp","prawn","egg",
-    "bacon","ham","sausage","kebab","meat","steak",
-    "duck","turkey","crab","lobster","squid"
-]
+# ------------------------------
+# CONFIGURATION
+# ------------------------------
 
-# =========================================================
+CACHE_FILE = "recipes_cache.json"
+
+# ------------------------------
 # RECIPE SERVICE
-# =========================================================
+# ------------------------------
+
 class RecipeService:
-
     def __init__(self):
+        self.cache_file = CACHE_FILE
+        self.recipes = []
+        self.last_fetched_page = 0
+        self.load_cache()
 
-        # 🔑 PUT YOUR API KEY HERE
-        self.API_KEY = "funpjH9HxaR8tBQoCdq6J42kttnjlsT_yy2bN6QSJuAJUzzV"
+    # ------------------------------
+    # Load cached recipes from single JSON
+    # ------------------------------
+    def load_cache(self):
+        try:
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
 
-        self.API_BASE_URL = "http://cosylab.iiitd.edu.in:6969"
-        self.API_ENDPOINT = "/recipe2-api/recipe/recipesinfo"
+                    # Case 1: Proper dict format
+                    if isinstance(data, dict):
+                        self.recipes = data.get("recipes", [])
+                        self.last_fetched_page = data.get("last_fetched_page", 0)
 
-        self.api_url = f"{self.API_BASE_URL}{self.API_ENDPOINT}"
+                    # Case 2: Old list-only format
+                    elif isinstance(data, list):
+                        print("⚠️ Old cache format detected. Converting...")
+                        self.recipes = data
+                        self.last_fetched_page = 0
+                        self.save_cache()  # Save in correct format
 
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.API_KEY}"
+                    print(f"📦 Loaded {len(self.recipes)} recipes from cache")
+            else:
+                print("🆕 No cache found. Starting fresh.")
+
+        except Exception as e:
+            print(f"⚠️ Error loading cache: {e}")
+            self.recipes = []
+            self.last_fetched_page = 0
+
+    # ------------------------------
+    # Save cache with structured keys
+    # ------------------------------
+    def save_cache(self):
+        with open(self.cache_file, "w", encoding="utf-8") as f:
+            json.dump({
+                "last_fetched_page": self.last_fetched_page,
+                "recipes": self.recipes
+            }, f, indent=2)
+
+
+    # ------------------------------
+    # Fetch new pages sequentially
+    # ------------------------------
+    def fetch_recipes(self, max_new_pages=50, limit=20):
+        print(f"📡 Current cache count: {len(self.recipes)} recipes")
+        
+        # API Config (Move to instance if needed, keeping here for simplicity)
+        API_KEY = "SXUtue0kpjPJQpVbrUiibRM8J0dYB2SqwDzz9udpn9PTlk1n"
+        API_URL = "http://cosylab.iiitd.edu.in:6969/recipe2-api/recipe/recipesinfo"
+        HEADERS = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
         }
 
-        self.recipes = []
+        start_page = self.last_fetched_page + 1
+        end_page = start_page + max_new_pages
+        
+        print(f"🔄 Sequential fetch: Starting from Page {start_page}...")
 
-    # =====================================================
-    # FETCH RECIPES WITH PAGINATION
-    # =====================================================
-    def fetch_recipes(self, max_pages=10, limit=50):
+        existing_ids = {r.get("_id") for r in self.recipes if r.get("_id")}
+        new_count = 0
 
-        print("\n🚀 Fetching recipes into memory...\n")
-
-        all_recipes = []
-
-        for page in range(1, max_pages + 1):
+        for page in range(start_page, end_page):
             try:
-                params = {"page": page, "limit": limit}
-
-                print(f"📡 Fetching page {page}/{max_pages}...")
-
                 response = requests.get(
-                    self.api_url,
-                    headers=self.headers,
-                    params=params,
+                    API_URL,
+                    headers=HEADERS,
+                    params={"page": page, "limit": limit},
                     timeout=15
                 )
 
-                print("Status Code:", response.status_code)
-
                 if response.status_code == 200:
                     data = response.json()
+                    page_data = data.get("payload", {}).get("data", [])
 
-                    # Correct parsing for recipesinfo endpoint
-                    page_recipes = data.get("payload", {}).get("data", [])
-
-                    print(f"✅ Page {page}: {len(page_recipes)} recipes fetched")
-
-                    if not page_recipes:
+                    if not page_data:
+                        print(f"   🛑 Page {page} is empty. Reached end of API.")
                         break
 
-                    all_recipes.extend(page_recipes)
-
+                    for r in page_data:
+                        if r.get("_id") not in existing_ids:
+                            self.recipes.append(r)
+                            existing_ids.add(r.get("_id"))
+                            new_count += 1
+                    
+                    self.last_fetched_page = page
+                    self.save_cache() # Save progress after each page
+                    print(f"   ✅ Fetched Page {page} ({len(page_data)} items)")
                 else:
-                    print("❌ API Error:", response.text)
+                    print(f"   ❌ Error on Page {page}: {response.status_code}")
                     break
 
             except Exception as e:
-                print("⚠️ Error:", e)
+                print(f"   ⚠️ Request failed on Page {page}: {e}")
                 break
 
-        self.recipes = all_recipes
-        print(f"\n✨ Total Cached Recipes: {len(self.recipes)}\n")
+        if new_count > 0:
+            print(f"✨ Successfully added {new_count} new recipes to local cache.")
+            self.save_cache()
+        else:
+            print("ℹ️ No new recipes were found.")
 
+    # ------------------------------
+    # Dataset-Driven Filtering Logic
+    # ------------------------------
+    def match_recipe(self, r, diet_type="any", max_time=None, region=None, protein_goal=None):
+        try:
+            # 1. Diet Type (vegan column: "1.0" or "0.0")
+            if diet_type == "vegan":
+                if str(r.get("vegan", "0.0")) != "1.0":
+                    return False
+
+            # 2. Max Time (total_time column)
+            if max_time:
+                t = float(r.get("total_time", 999))
+                if t > max_time:
+                    return False
+
+            # 3. Protein Goal (Protein (g))
+            if protein_goal:
+                p = float(r.get("Protein (g)", 0))
+                if p < protein_goal:
+                    return False
+
+            # 4. Region (Region or Sub_region)
+            if region:
+                r_reg = str(r.get("Region", "")).lower()
+                r_sub = str(r.get("Sub_region", "")).lower()
+                if region.lower() not in r_reg and region.lower() not in r_sub:
+                    return False
+
+            return True
+        except:
+            return False
+
+    # ------------------------------
+    # PROGRESSIVE RELAXED FILTERING
+    # ------------------------------
+    def get_filtered_pool(self, diet_type="any", max_time=None, region=None, protein_goal=None):
+        
+        # Level 1: Strict match
+        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, max_time, region, protein_goal)]
+        if pool: return pool
+
+        print("⚠️ Relaxing filters (protein)...")
+        # Level 2: Relax Protein
+        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, max_time, region, None)]
+        if pool: return pool
+
+        print("⚠️ Relaxing filters (time)...")
+        # Level 3: Relax Time
+        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, None, region, None)]
+        if pool: return pool
+
+        print("⚠️ Relaxing filters (region)...")
+        # Level 4: Relax Region (Diet type is sacred)
+        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, None, None, None)]
+        if pool: return pool
+
+        # Final Fallback: Just diet type or all
         return self.recipes
 
-    # =====================================================
-    # VEG CHECK
-    # =====================================================
-    def is_veg(self, recipe):
-        text = (
-            str(recipe.get("Recipe_title", "")).lower() + " " +
-            str(recipe.get("ingredients", "")).lower()
-        )
-        return not any(kw in text for kw in NON_VEG_KEYWORDS)
-
-    # =====================================================
-    # FILTER BASED ON USER INPUT
-    # =====================================================
-    def filter_recipes(self, is_veg_pref=True, max_time=None, region=None):
-
-        filtered = []
-
+    # ------------------------------
+    # SIMPLE KEYWORD SEARCH
+    # ------------------------------
+    def search_recipes(self, query, top_k=20):
+        if not self.recipes:
+            return []
+            
+        q = query.lower()
+        results = []
         for r in self.recipes:
+            text = (str(r.get("Recipe_title", "")) + " " + str(r.get("ingredients", ""))).lower()
+            if q in text:
+                results.append(r)
+        
+        return results[:top_k]
 
-            # Veg filter
-            if is_veg_pref and not self.is_veg(r):
-                continue
-
-            # Time filter
-            if max_time:
-                try:
-                    if float(r.get("total_time", 0)) > max_time:
-                        continue
-                except:
-                    continue
-
-            # Region filter
-            if region:
-                r_region = str(r.get("Region", "")).lower()
-                r_sub = str(r.get("Sub_region", "")).lower()
-                if region.lower() not in r_region and region.lower() not in r_sub:
-                    continue
-
-            filtered.append(r)
-
-        return filtered
-
-    # =====================================================
-    # PICK CLOSEST CALORIE MATCH
-    # =====================================================
-    def pick_closest_recipe(self, recipe_list, target_calories):
-
-        if not recipe_list:
-            return None
-
-        def calorie_diff(recipe):
-            try:
-                return abs(float(recipe.get("Calories", 0)) - target_calories)
-            except:
-                return float("inf")
-
-        return min(recipe_list, key=calorie_diff)
-
-    # =====================================================
-    # GENERATE WEEKLY DIET PLAN
-    # =====================================================
-    def generate_weekly_plan(self, daily_calories,
-                             is_veg_pref=True,
-                             max_time=None,
-                             region=None):
-
-        available = self.filter_recipes(
-            is_veg_pref=is_veg_pref,
-            max_time=max_time,
-            region=region
-        )
-
-        if not available:
-            print("❌ No recipes after filtering")
-            return None
-
+    # ------------------------------
+    # 7-DAY DIET PLAN GENERATOR
+    # ------------------------------
+    def generate_weekly_plan(self, daily_calories, diet_type="any", max_time=None, region=None, protein_goal=None):
+        
+        # Calculate split targets
         targets = {
             "Breakfast": daily_calories * 0.30,
             "Lunch": daily_calories * 0.40,
             "Dinner": daily_calories * 0.30
         }
 
-        days = ["Monday","Tuesday","Wednesday",
-                "Thursday","Friday","Saturday","Sunday"]
+        # Get the recipe pool based on constraints
+        pool = self.get_filtered_pool(diet_type, max_time, region, protein_goal)
+        print(f"📊 Filtering complete. Final pool size: {len(pool)}")
 
+        days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         plan = {}
+        used_ids = set()
 
         for day in days:
             plan[day] = {}
-
             for meal, target in targets.items():
-                best = self.pick_closest_recipe(available, target)
+                
+                # Filter out used recipes to avoid repetition
+                available = [r for r in pool if r.get("_id") not in used_ids]
+                
+                # If we ran out of recipes, reset the used set for diversity
+                if not available:
+                    used_ids.clear()
+                    available = pool
+
+                # Pick closest calorie match
+                best_match = min(available, key=lambda x: abs(float(x.get("Calories", 0)) - target))
+                
+                # Store only required fields for the UI
                 plan[day][meal] = {
-                    "Recipe_title": best.get("Recipe_title"),
-                    "Calories": best.get("Calories"),
-                    "Region": best.get("Region"),
-                    "Total_time": best.get("total_time")
+                    "Recipe_title": best_match.get("Recipe_title"),
+                    "Calories": float(best_match.get("Calories", 0)),
+                    "total_time": best_match.get("total_time"),
+                    "Protein (g)": best_match.get("Protein (g)"),
+                    "Region": best_match.get("Region"),
+                    "Sub_region": best_match.get("Sub_region"),
+                    "ingredients": best_match.get("ingredients"),
+                    "instructions": best_match.get("instructions"),
+                    "_id": best_match.get("_id")
                 }
+                used_ids.add(best_match.get("_id"))
 
         return plan
-
-
-# =====================================================
-# TEST RUN
-# =====================================================
-if __name__ == "__main__":
-
-    service = RecipeService()
-
-    service.fetch_recipes(max_pages=5)
-
-    weekly_plan = service.generate_weekly_plan(
-        daily_calories=1800,
-        is_veg_pref=True,
-        max_time=60,
-        region="Indian"
-    )
-
-    print("\n📅 GENERATED WEEKLY PLAN:\n")
-    print(weekly_plan)

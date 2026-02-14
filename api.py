@@ -24,31 +24,50 @@ app.add_middleware(
 # Load data into memory on startup
 @app.on_event("startup")
 def startup_event():
-    print("Fetching recipes into memory...")
-    recipe_service.fetch_recipes(max_pages=10)
-    print(f"✅ Cached {len(recipe_service.recipes)} recipes")
+    print("🚀 App starting... Initializing sequential fetch (Local-First).")
+    # Increased to 50 pages to build a larger original dataset
+    recipe_service.fetch_recipes(max_new_pages=50) 
+    print(f"✅ Active pool: {len(recipe_service.recipes)} recipes available.")
 
 # Pydantic Models for the Diet Plan
 class DietPlanRequest(BaseModel):
     daily_calories: float = 2000
-    is_vegetarian: bool = True
+    diet_type: Optional[str] = "any" # "vegan" or "any"
     max_cooking_time: Optional[float] = None
+    min_calories: Optional[float] = None
+    max_calories: Optional[float] = None
     region: Optional[str] = None
+    servings: Optional[float] = None
+    protein_goal: Optional[float] = None
+
+class SearchRequest(BaseModel):
+    query: str
+    top_k: int = 20
 
 @app.get("/")
 def health_check():
     return {"status": "ok", "message": "Foodoscope API is running"}
 
+@app.post("/search")
+def search_recipes(request: SearchRequest):
+    results = recipe_service.search_recipes(request.query, request.top_k)
+    return {"recipes": results}
+
 @app.post("/generate-diet-plan")
 def generate_diet(request: DietPlanRequest):
     plan = recipe_service.generate_weekly_plan(
         daily_calories=request.daily_calories,
-        is_veg_pref=request.is_vegetarian,
+        diet_type=request.diet_type,
         max_time=request.max_cooking_time,
-        region=request.region
+        region=request.region,
+        protein_goal=request.protein_goal
     )
     
     if not plan:
         raise HTTPException(status_code=404, detail="Could not generate plan with given constraints.")
         
     return plan
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
