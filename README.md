@@ -18,7 +18,7 @@ It parses user input (example: *"High-protein Keto Mexican + Indian food under 1
 ---
 
 ## 🧠 Key Features
-✅ 5-model NER pipeline (spaCy, Flair, HF BERT, Stanza, Regex)  
+✅ 5-model NER pipeline (spaCy, Regex)  
 ✅ Entity consolidation using voting + rule boosting  
 ✅ Schema-aligned RecipeDB query param generation  
 ✅ Supports cuisine-based filtering (region)  
