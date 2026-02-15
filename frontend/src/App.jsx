@@ -144,11 +144,12 @@ function App() {
       <nav className="bg-white/80 backdrop-blur-xl shadow-sm p-4 sticky top-0 z-[60] border-b border-gray-100">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <button onClick={() => setView('home')} className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-tighter">
-            FOODOSCOPE.AI 🥑
+            DietCraft AI 🥑
           </button>
           <div className="flex gap-2">
              <button onClick={() => setView('recipes')} className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${view === 'recipes' ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:text-gray-900'}`}>RECOMMENDER</button>
              <button onClick={() => setView('diet')} className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${view === 'diet' ? 'bg-secondary text-white shadow-lg' : 'text-gray-400 hover:text-gray-900'}`}>DIET PLANNER</button>
+             <a href="https://obesity-detect-iiitd.streamlit.app/" target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-xl text-sm font-black text-gray-400 hover:text-blue-500 transition-all flex items-center gap-1">OBESITY DETECTOR ↗</a>
           </div>
         </div>
       </nav>
@@ -159,7 +160,7 @@ function App() {
         {view === 'home' && (
           <div className="space-y-16 py-12">
             <div className="text-center space-y-6">
-              <div className="inline-block px-4 py-1.5 bg-orange-100 text-secondary rounded-full text-xs font-black uppercase tracking-widest mb-2 animate-bounce">Hackathon v3.0</div>
+              
               <h2 className="text-6xl md:text-7xl font-black text-gray-900 leading-tight tracking-tighter">
                 Smart Food. <br/>
                 <span className="text-primary italic">Better Plan.</span>
