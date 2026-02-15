@@ -169,7 +169,7 @@ function App() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto px-4">
+            <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto px-4">
               <button 
                 onClick={() => setView('recipes')}
                 className="group relative bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 text-left hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
@@ -189,6 +189,18 @@ function App() {
                 <p className="text-gray-500 font-medium">Automatic 30/40/30 calorie-split meal planning for 7 days.</p>
                 <div className="mt-8 flex items-center text-secondary font-black uppercase text-xs tracking-widest">Build Plan <span className="ml-2 group-hover:translate-x-2 transition-transform">→</span></div>
               </button>
+
+              <a 
+                href="https://obesity-detect-iiitd.streamlit.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative bg-white p-10 rounded-[3rem] shadow-xl border border-gray-100 text-left hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden block"
+              >
+                <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center text-4xl shadow-inner mb-6 group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">⚖️</div>
+                <h3 className="text-4xl font-black text-gray-900 leading-[1.1] mb-4">Obesity<br/>Detector</h3>
+                <p className="text-gray-500 font-medium">Analyze health metrics with our advanced prediction tool.</p>
+                <div className="mt-8 flex items-center text-blue-500 font-black uppercase text-xs tracking-widest">Check Now <span className="ml-2 group-hover:translate-x-2 transition-transform">→</span></div>
+              </a>
             </div>
           </div>
         )}
