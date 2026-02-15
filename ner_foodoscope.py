@@ -8,6 +8,8 @@ warnings.filterwarnings('ignore')
 # ---------------------------------------------------
 # Supported DB/API vocab (IMPORTANT for normalization)
 # ---------------------------------------------------
+
+
 SUPPORTED_CUISINES = [
     "Mexican", "Indian", "Italian", "Chinese", "Thai",
     "Mediterranean", "American", "Japanese", "Middle Eastern",
