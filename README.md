@@ -1,41 +1,126 @@
-# 🍽️ RecipeDB Diet Planner (NER + Meal Plan Generator)
+🍽️ DietCraft AI
+Smart Food Intelligence Platform(DietCraft AI)
 
-## 📌 Overview
-This project is a **Clinical Nutritionist + Data Engineering pipeline** that generates a **7-day meal plan** from a natural language user request.
+AI-powered system for personalized recipe recommendation, intelligent meal planning, and obesity risk prediction.
 
-It parses user input (example: *"High-protein Keto Mexican + Indian food under 1800 calories/day, no fried food"*) and converts it into structured **RecipeDB query parameters**, fetches recipes, filters them, and generates a balanced weekly diet chart.
+📌 Overview
 
----
+DietCraft AI is an end-to-end smart nutrition platform that combines:
 
-## 🎯 Goals
-- Convert unstructured user text into structured dietary constraints.
-- Query RecipeDB using extracted parameters.
-- Generate a 7-day meal plan (Breakfast, Lunch, Dinner).
-- Ensure diet rules are respected (Keto/Vegan/etc.).
-- Enforce calorie limits and protein goals.
-- Rotate cooking methods so meals are not repetitive.
+🔎 AI-powered Recipe Recommendation
 
----
+📅 7-Day Personalized Diet Chart Generator
 
-## 🧠 Key Features
-✅ NER pipeline (spaCy, Regex)  
-✅ Entity consolidation using voting + rule boosting  
-✅ Schema-aligned RecipeDB query param generation  
-✅ Supports cuisine-based filtering (region)  
-✅ Supports diet-based filtering (keto, vegan, paleo, etc.)  
-✅ Supports protein filtering via `protein-range`  
-✅ Supports calorie constraints  
-✅ Supports flavor preferences (spicy, savory, etc.)  
-✅ Avoids excluded cooking methods (example: fried foods)  
-✅ Generates weekly meal plan output
+🧬 ML-based Obesity Risk Prediction
 
----
+The system converts unstructured user input into structured dietary intelligence, fetches real-time recipe data, optimizes meal plans, and predicts obesity risk using multiple lifestyle and body parameters.
 
-## 🏗️ System Pipeline
+🎯 Core Modules
+1️⃣ AI Recipe Recommender
 
-### Input → Output Flow
-```text
-User Input Text
+Personalized recipe discovery engine powered by Natural Language Processing.
+
+🔹 What It Does
+
+Converts user text like:
+
+"High-protein Keto Mexican + Indian food under 1800 calories/day, no fried food"
+
+Extracts structured dietary constraints
+
+Fetches matching recipes from RecipeDB
+
+Applies smart filtering rules
+
+🔹 Data Source
+
+Recipes are fetched from:
+
+API_BASE_URL = "http://cosylab.iiitd.edu.in:6969"
+API_ENDPOINT = "/recipe2-api/recipe/recipesinfo"
+
+We dynamically query the RecipeDB API and process results in real-time.
+
+2️⃣ 🥗 Smart 7-Day Diet Chart Generator
+
+Clinical nutritionist-inspired meal planner with rule-based optimization.
+
+🔹 Features
+
+✅ NER pipeline (spaCy + Regex)
+
+✅ Multi-model entity consolidation (voting + rule boosting)
+
+✅ Schema-aligned RecipeDB query parameter generation
+
+✅ Cuisine filtering (Indian, Mexican, etc.)
+
+✅ Diet filtering (Keto, Vegan, Paleo, etc.)
+
+✅ Protein range filtering
+
+✅ Calorie limit enforcement
+
+✅ Flavor preference filtering
+
+✅ Cooking method exclusion (e.g., no fried food)
+
+✅ Balanced 7-day meal rotation (Breakfast, Lunch, Dinner)
+
+🔹 Live Data Fetching & Caching
+
+Recipes are continuously fetched live from RecipeDB API.
+
+Data is stored in a temporary cache.
+
+The system keeps fetching until the API token expires.
+
+Ensures fresh and dynamic meal plans.
+
+3️⃣ 🧬 Obesity AI Detector
+
+Machine Learning-based obesity category prediction tool.
+
+🔹 Input Parameters
+
+The model predicts obesity risk using:
+
+Age
+
+Gender
+
+Height
+
+Weight
+
+BMI
+
+Family history of overweight
+
+Meal frequency
+
+Water intake
+
+Physical activity
+
+Lifestyle patterns
+
+Additional behavioral health parameters
+
+🔹 Output
+
+BMI Score
+
+Obesity Category
+
+Risk Status
+
+Lifestyle Insights
+
+Built using supervised ML techniques with structured health data.
+
+🧠 System Architecture
+User Input
      ↓
 NER Pipeline (5 models)
      ↓
@@ -43,10 +128,18 @@ Entity Consolidation + Normalization
      ↓
 RecipeDB Query Parameter Builder
      ↓
-Recipe Fetching via API
+Live API Fetch
      ↓
-Filtering (diet + calories + protein + method constraints)
+Filtering Engine
      ↓
-Meal Plan Generation (7 days)
+7-Day Meal Plan Generator
+
+Parallel Module:
+
+User Health Inputs
      ↓
-Final Weekly Meal Chart Output
+Feature Processing
+     ↓
+ML Obesity Model
+     ↓
+Risk Category Prediction
