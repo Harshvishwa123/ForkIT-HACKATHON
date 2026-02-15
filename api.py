@@ -64,7 +64,7 @@ def generate_diet(request: DietPlanRequest):
     )
     
     if not plan:
-        raise HTTPException(status_code=404, detail="Could not generate plan with given constraints.")
+        raise HTTPException(status_code=404, detail="No sufficient data in the database for now. Please try relaxing your filters or wait for more data to be fetched.")
         
     return plan
 

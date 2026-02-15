@@ -156,31 +156,18 @@ class RecipeService:
             return False
 
     # ------------------------------
-    # PROGRESSIVE RELAXED FILTERING
+    # STRICT FILTERING (No Fallback)
     # ------------------------------
     def get_filtered_pool(self, diet_type="any", max_time=None, region=None, protein_goal=None):
         
-        # Level 1: Strict match
+        # Strict match only - No relaxing filters to ensure user gets what they asked for
         pool = [r for r in self.recipes if self.match_recipe(r, diet_type, max_time, region, protein_goal)]
-        if pool: return pool
+        
+        if not pool:
+            print(f"❌ No recipes found for filters: Diet={diet_type}, Time={max_time}, Region={region}")
+            return []
 
-        print("⚠️ Relaxing filters (protein)...")
-        # Level 2: Relax Protein
-        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, max_time, region, None)]
-        if pool: return pool
-
-        print("⚠️ Relaxing filters (time)...")
-        # Level 3: Relax Time
-        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, None, region, None)]
-        if pool: return pool
-
-        print("⚠️ Relaxing filters (region)...")
-        # Level 4: Relax Region (Diet type is sacred)
-        pool = [r for r in self.recipes if self.match_recipe(r, diet_type, None, None, None)]
-        if pool: return pool
-
-        # Final Fallback: Just diet type or all
-        return self.recipes
+        return pool
 
     # ------------------------------
     # SIMPLE KEYWORD SEARCH
@@ -212,6 +199,10 @@ class RecipeService:
 
         # Get the recipe pool based on constraints
         pool = self.get_filtered_pool(diet_type, max_time, region, protein_goal)
+        
+        if not pool:
+            return None # Return None to signal insufficient data
+
         print(f"📊 Filtering complete. Final pool size: {len(pool)}")
 
         days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
